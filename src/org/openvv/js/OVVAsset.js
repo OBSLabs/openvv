@@ -58,7 +58,7 @@ function OVV() {
     var userAgent = window.testOvvConfig && window.testOvvConfig.userAgent ? window.testOvvConfig.userAgent : navigator.userAgent;
 
     /**
-    * Returns an object that contains the browser name, version and id {@link OVV#browserIDEnum}		
+    * Returns an object that contains the browser name, version and id {@link OVV#browserIDEnum}
     * @param {ua} userAgent
     */
     function getBrowserDetailsByUserAgent(ua) {
@@ -127,10 +127,10 @@ function OVV() {
 
     /**
     * browser:
-    *	{ 
-    *		ID: ,  
-    *	  	name: '', 
-    *	  	version: '' 
+    *	{
+    *		ID: ,
+    *	  	name: '',
+    *	  	version: ''
     *	};
     */
     this.browser = getBrowserDetailsByUserAgent(userAgent);
@@ -743,7 +743,7 @@ function OVVAsset(uid, dependencies) {
             return check;
         }
 
-        // if we're in IE or FF and we're in an cross domain iframe, return unmeasurable						
+        // if we're in IE or FF and we're in an cross domain iframe, return unmeasurable
         // We are able to measure for same domain iframe ('friendly iframe')
         if (($ovv.browser.ID === $ovv.browserIDEnum.MSIE || $ovv.browser.ID === $ovv.browserIDEnum.Firefox) &&
             check.geometrySupported === false) {
@@ -767,7 +767,7 @@ function OVVAsset(uid, dependencies) {
         }
         var controlBeacon = getBeacon(0);
 
-        // check to make sure the control beacon is found and its 
+        // check to make sure the control beacon is found and its
         // callback has been setup
         if (controlBeacon && controlBeacon.isViewable) {
             // the control beacon should always be off screen and not viewable,
@@ -886,8 +886,8 @@ function OVVAsset(uid, dependencies) {
     */
     var checkGeometry = function (check, player) {
         var viewabilityResult = geometryViewabilityCalculator.getViewabilityState(player, window);
-        
-        if (!viewabilityResult.error) {            
+
+        if (!viewabilityResult.error) {
             check.clientWidth = viewabilityResult.clientWidth;
             check.clientHeight = viewabilityResult.clientHeight;
             check.percentViewable =  viewabilityResult.percentViewable;
@@ -896,7 +896,7 @@ function OVVAsset(uid, dependencies) {
             check.objLeft = viewabilityResult.objLeft;
             check.objRight = viewabilityResult.objRight;
         }
-    
+
         return viewabilityResult;
     };
 
@@ -933,7 +933,7 @@ function OVVAsset(uid, dependencies) {
 
             check.beacons[index] = isViewable && onScreen;
 
-            // the control beacon is only involved in determining if the 
+            // the control beacon is only involved in determining if the
             // browser supports beacon measurement, so move on
             if (index === 0) {
                 continue;
@@ -978,10 +978,10 @@ function OVVAsset(uid, dependencies) {
         // when the center of the player is visible
         if ((beacons[CENTER] === true) &&
         // and 2 adjacent outside corners are visible
-            (beacons[OUTER_TOP_LEFT] === true && beacons[OUTER_TOP_RIGHT] == true) ||
+            ((beacons[OUTER_TOP_LEFT] === true && beacons[OUTER_TOP_RIGHT] == true) ||
             (beacons[OUTER_TOP_LEFT] === true && beacons[OUTER_BOTTOM_LEFT] == true) ||
             (beacons[OUTER_TOP_RIGHT] === true && beacons[OUTER_BOTTOM_RIGHT] == true) ||
-            (beacons[OUTER_BOTTOM_LEFT] === true && beacons[OUTER_BOTTOM_RIGHT] == true)
+            (beacons[OUTER_BOTTOM_LEFT] === true && beacons[OUTER_BOTTOM_RIGHT] == true))
         ) {
             return true;
         }
@@ -1076,7 +1076,7 @@ function OVVAsset(uid, dependencies) {
         // move the beacons to their initial position
         positionBeacons.bind(this)();
 
-        // it takes ~500ms for beacons to know if they've been moved off 
+        // it takes ~500ms for beacons to know if they've been moved off
         // screen, so they're repositioned at this interval so they'll be
         // ready for the next check
         this.positionInterval = setInterval(positionBeacons.bind(this), 500);
@@ -1093,7 +1093,7 @@ function OVVAsset(uid, dependencies) {
 
         var playerLocation = player.getClientRects()[0];
 
-        // when we don't have an initial position, or the position hasn't changed 
+        // when we don't have an initial position, or the position hasn't changed
         if (lastPlayerLocation && (lastPlayerLocation.left === playerLocation.left && lastPlayerLocation.right === playerLocation.right && lastPlayerLocation.top === playerLocation.top && lastPlayerLocation.bottom === playerLocation.bottom)) {
             // no need to update positions
             return;
@@ -1267,7 +1267,7 @@ function OVVAsset(uid, dependencies) {
         // 'BEACON_SWF_URL' is String substituted from ActionScript
         createBeacons.bind(this)('BEACON_SWF_URL');
     } else {
-        // since we don't have to wait for beacons to be ready, we start the 
+        // since we don't have to wait for beacons to be ready, we start the
         // impression timer now
         if (player && player.startImpressionTimer)
             player.startImpressionTimer();
@@ -1286,7 +1286,7 @@ function OVVGeometryViewabilityCalculator() {
         var viewablePercentage = getAssetViewablePercentage(assetSize, viewPortSize);
         //Get player dimensions:
         var assetRect = element.getBoundingClientRect();
-        
+
         return {
             clientWidth: viewPortSize.width,
             clientHeight: viewPortSize.height,
@@ -1301,7 +1301,7 @@ function OVVGeometryViewabilityCalculator() {
     ///////////////////////////////////////////////////////////////////////////
     // PRIVATE FUNCTIONS
     ///////////////////////////////////////////////////////////////////////////
-    
+
     /**
     * Get the viewport size by taking the smallest dimensions
     */
@@ -1347,7 +1347,7 @@ function OVVGeometryViewabilityCalculator() {
     /**
     * Recursive function that return the asset (element) visible dimension
     * @param {element} The element to get his visible dimension
-    * @param {contextWindow} The relative window 
+    * @param {contextWindow} The relative window
     */
     var getAssetVisibleDimension = function (element, contextWindow) {
         var currWindow = contextWindow;
@@ -1362,7 +1362,7 @@ function OVVGeometryViewabilityCalculator() {
             resultDimension = elementRect;
             //Calculate the relative element dimension if we clime to a parent window
             if (currWindow != parentWindow) {
-                //Recursive call to get the relative element dimension from the parent window 
+                //Recursive call to get the relative element dimension from the parent window
                 var parentDimension = getAssetVisibleDimension(currWindow.frameElement, parentWindow);
                 //The asset is partially below the parent window (asset bottom is below the visible window)
                 if (parentDimension.bottom < resultDimension.bottom) {
@@ -1411,7 +1411,7 @@ function OVVGeometryViewabilityCalculator() {
 
     /**
     * Calculate asset viewable percentage given the asset size and the viewport
-    * @param {effectiveAssetRect} the asset viewable rect; effectiveAssetRect = {left :, top :,bottom:,right:,}   
+    * @param {effectiveAssetRect} the asset viewable rect; effectiveAssetRect = {left :, top :,bottom:,right:,}
     * @param {viewPortSize} the browser viewport size;
     */
     var getAssetViewablePercentage = function (effectiveAssetRect, viewPortSize) {
