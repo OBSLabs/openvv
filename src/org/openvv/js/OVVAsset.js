@@ -968,6 +968,9 @@ function OVVAsset(uid, dependencies) {
             }
         }
 
+        // set rough viewable percent based on number of viewable beacons
+        check.percentViewable = Math.round((beaconsVisible / (TOTAL_BEACONS * 1.0)) * 100)
+
         // when all points are visible
         if (beaconsVisible === TOTAL_BEACONS) {
             return true;
