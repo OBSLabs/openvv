@@ -3,6 +3,7 @@
 *.swo
 .actionScriptProperties
 .project
+.idea
 bin-debug/
 html-template/
 .settings/
@@ -12,3 +13,6 @@ jsdoc/
 obj/
 .flexLibProperties
 src/org/openvv/OVVVersion.as
+/node_modules
+/tests/test_site/ad/IAB-VPAID-Ad.swf
+/tests/test_site/ad/OVVBeacon.swf
