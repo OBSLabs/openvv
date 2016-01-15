@@ -58,8 +58,8 @@ function OVV() {
 			if (window.top == window) {
 				return servingScenarioEnum.OnPage;
 			}
-			var curWin=window;	
-			var level=0;			
+			var curWin=window;
+			var level=0;
 			while(curWin.parent != curWin  && level<1000){
 				 if (curWin.parent.document.domain != curWin.document.domain) {
 					return servingScenarioEnum.CrossDomainIframe;
@@ -70,12 +70,12 @@ function OVV() {
         } catch (e) { }
         return servingScenarioEnum.CrossDomainIframe;
     };
-	
+
     this.servingScenario = getServingScenarioType(this.servingScenarioEnum);
     this.IN_IFRAME = (this.servingScenario != this.servingScenarioEnum.OnPage);
     this.IN_XD_IFRAME =  (this.servingScenario == this.servingScenarioEnum.CrossDomainIframe);
     this.geometrySupported = !this.IN_XD_IFRAME;
-	
+
     // To support older versions of OVVAsset
     var browserData = new OVVBrowser(this.userAgent);
 
@@ -1119,7 +1119,7 @@ function OVVAsset(uid, dependencies) {
     * @param {Element} player The HTML Element to measure
     */
     var checkGeometry = function (check, player) {
-		check.percentObscured = check.percentObscured || 0; // support override of OVVCheck by previous version  
+		check.percentObscured = check.percentObscured || 0; // support override of OVVCheck by previous version
         var viewabilityResult = geometryViewabilityCalculator.getViewabilityState(player, window);
         if (!viewabilityResult.error) {
             check.clientWidth = viewabilityResult.clientWidth;
@@ -1159,7 +1159,7 @@ function OVVAsset(uid, dependencies) {
 
         for (var index = 0; index <= TOTAL_BEACONS; index++) {
 
-            // the control beacon is only involved in determining if the 
+            // the control beacon is only involved in determining if the
             // browser supports beacon measurement, so move on
             if (index === 0) {
                 continue;
@@ -1198,6 +1198,9 @@ function OVVAsset(uid, dependencies) {
                 }
             }
         }
+
+        // set rough viewable percent based on number of viewable beacons
++       check.percentViewable = Math.round((beaconsVisible / (TOTAL_BEACONS * 1.0)) * 100);
 
         // when all points are visible
         if (beaconsVisible === TOTAL_BEACONS) {
@@ -1314,7 +1317,7 @@ function OVVAsset(uid, dependencies) {
         // move the beacons to their initial position
         positionBeacons.bind(this)();
 
-        // it takes ~500ms for beacons to know if they've been moved off 
+        // it takes ~500ms for beacons to know if they've been moved off
         // screen, so they're repositioned at this interval so they'll be
         // ready for the next check
         this.positionInterval = setInterval(positionBeacons.bind(this), positionBeaconsIntervalDelay);
@@ -1387,7 +1390,7 @@ function OVVAsset(uid, dependencies) {
 
         var playerLocation = player.getClientRects()[0];
 
-        // when we don't have an initial position, or the position hasn't changed 
+        // when we don't have an initial position, or the position hasn't changed
         if (lastPlayerLocation && playerLocation && (lastPlayerLocation.left === playerLocation.left && lastPlayerLocation.right === playerLocation.right && lastPlayerLocation.top === playerLocation.top && lastPlayerLocation.bottom === playerLocation.bottom)) {
             // no need to update positions
             return;
@@ -1885,13 +1888,13 @@ Function.prototype.memoize = function() {
         return fn.memoized.apply(fn, arguments);
     }
 };
-var newOVV = new OVV();		
+var newOVV = new OVV();
 // initialize the OVV object if it doesn't exist
-window.$ovv = window.$ovv || newOVV;		
-for(var i in newOVV){		
-    if(!$ovv.hasOwnProperty(i)){		
-        $ovv[i] = newOVV[i];		
-   }		
+window.$ovv = window.$ovv || newOVV;
+for(var i in newOVV){
+    if(!$ovv.hasOwnProperty(i)){
+        $ovv[i] = newOVV[i];
+   }
 }
 
 // 'OVVID' is String substituted from AS
