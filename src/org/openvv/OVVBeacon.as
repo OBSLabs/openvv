@@ -41,7 +41,7 @@ package org.openvv {
     public final class OVVBeacon extends Sprite {
 
         ////////////////////////////////////////////////////////////
-        //   CONSTANTS 
+        //   CONSTANTS
         ////////////////////////////////////////////////////////////
 
         /**
@@ -55,7 +55,7 @@ package org.openvv {
         public static const RED: uint = 0xFF0000;
 
         ////////////////////////////////////////////////////////////
-        //   ATTRIBUTES 
+        //   ATTRIBUTES
         ////////////////////////////////////////////////////////////
 
         /**
@@ -76,6 +76,11 @@ package org.openvv {
         private var _index: int;
 
         /**
+         * Namespace beacon will use to access OVV JS object
+         */
+        private var _namespace: String;
+
+        /**
          * A class that measures the latest frame rate of the beacon
          */
         private var _renderMeter: OVVRenderMeter;
@@ -86,7 +91,7 @@ package org.openvv {
         private var _throttleState: String;
 
         ////////////////////////////////////////////////////////////
-        //   CONSTRUCTOR 
+        //   CONSTRUCTOR
         ////////////////////////////////////////////////////////////
 
         /**
@@ -100,13 +105,14 @@ package org.openvv {
 
             _id = loaderInfo.parameters.id;
             _index = loaderInfo.parameters.index;
+            _namespace = loaderInfo.parameters.ns || '$ovv';
 
             addEventListener(Event.ADDED_TO_STAGE, onAddedToStage);
             addEventListener("throttle", onThrottle);
         }
 
         ////////////////////////////////////////////////////////////
-        //   PUBLIC API 
+        //   PUBLIC API
         ////////////////////////////////////////////////////////////
 
         /**
@@ -152,7 +158,7 @@ package org.openvv {
         }
 
         ////////////////////////////////////////////////////////////
-        //   EVENT HANDLERS 
+        //   EVENT HANDLERS
         ////////////////////////////////////////////////////////////
 
         /**
@@ -190,7 +196,7 @@ package org.openvv {
             ExternalInterface.addCallback("getFrameRate", getFrameRate);
 
             if (_id && _index) {
-                ExternalInterface.call("$ovv.getAssetById('" + _id + "')" + ".beaconStarted", _index);
+                ExternalInterface.call("" + _namespace + ".getAssetById('" + _id + "')" + ".beaconStarted", _index);
             }
         }
 
@@ -205,7 +211,7 @@ package org.openvv {
         }
 
         ////////////////////////////////////////////////////////////
-        //   PRIVATE METHODS 
+        //   PRIVATE METHODS
         ////////////////////////////////////////////////////////////
 
         /**

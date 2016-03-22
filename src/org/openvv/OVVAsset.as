@@ -99,7 +99,7 @@ package org.openvv {
         public static const POLL_INTERVAL:int = 200;
 
         /**
-         * Hold OVV version. Will past to JavaScript as well $ovv.version
+         * Hold OVV version. Will past to JavaScript as well $ovvvpaid.version
          */
 
         public static const RELEASE_VERSION: String = "2.5.2";
@@ -347,7 +347,7 @@ package org.openvv {
                 });
             }
 
-            var jsResults: Object = ExternalInterface.call("$ovv.getAssetById('" + _id + "')" + ".checkViewability");
+            var jsResults: Object = ExternalInterface.call("$ovvvpaid.getAssetById('" + _id + "')" + ".checkViewability");
             var results: OVVCheck = new OVVCheck(jsResults);
 
             if (results && !!results.error)
@@ -378,7 +378,7 @@ package org.openvv {
          * end user to call this function when they no longer need OpenVV.
          */
         public function dispose(): void {
-            ExternalInterface.call("$ovv.getAssetById('" + _id + "')" + ".dispose");
+            ExternalInterface.call("$ovvvpaid.getAssetById('" + _id + "')" + ".dispose");
 
             if (_intervalTimer) {
                 _intervalTimer.stop();
@@ -658,7 +658,7 @@ package org.openvv {
 		}
 
 		/**
-		 * Publish the event to JavaScript using PubSub in $ovv
+		 * Publish the event to JavaScript using PubSub in $ovvvpaid
 		 * @param	eventType
 		 * @param	vpaidData
 		 * @param	ovvData
@@ -668,7 +668,7 @@ package org.openvv {
 			var publishedData:* = {"vpaidData":vpaidData, "ovvData":ovvData}
 			var jsOvvPublish:XML = <script><![CDATA[
 								function(event, id, args) {
-									setTimeout($ovv.publish(event,  id, args), 0);
+									setTimeout($ovvvpaid.publish(event,  id, args), 0);
 								}
 							]]></script>;
 
