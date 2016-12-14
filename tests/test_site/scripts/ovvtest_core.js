@@ -131,13 +131,44 @@
 
 		return targ;
 	}
-
+	
+	/**
+	* Route a message to to parent page, if applicable
+	*/
+	function notifyParentPage(message){
+		var topWin, msg;
+		
+		// exit if we are the top frame
+		if(ovvtest.isTopFrame() || message == null){
+			return;
+		}
+		
+		if(typeof(message) == 'string'){
+			msg = message;
+		}
+		else{
+			try{
+				msg = JSON.stringify(message);
+			}
+			catch(ex){
+				console.error(ex);
+				console.error("Failure parsing parent message");
+				return;
+			}
+			
+			topWin = window.top;
+			topWin.postMessage(msg, "*");
+		}		
+	}
+	
+	
 	function displayQuartileViewability(eventName, data){
 		var el = opts.quartileValuesOutputElem;
-		var stateEl = doc.getElementById('ovvExecutionState');
 		var id, nd;
 		var k, val, i;
+		var isViewable;
 		var buf = [];
+		var msg;
 		var css = '';
 		if(typeof(el) === 'string'){
 			id = el;
@@ -146,13 +177,20 @@
 				el = doc.querySelector(id);
 			}
 		}
-
+		
+		msg = {
+			func : 'displayQuartileViewability',
+			eventName: eventName,
+			data: data
+		}
+		
+		notifyParentPage(msg);
+		
+		
 		if(el == null || data == null){
 			return;
 		}
-
-		stateEl.innerHtml != eventName;
-
+		
 		buf.push('<div class="eventName">', eventName, '</div>');
 		buf.push('<div class="viewabilityState">Viewable State: ', data.viewabilityState, '</div>');
 		buf.push(' <span class="ivpct">In View: ', data.percentViewable, '%</span>');
@@ -164,9 +202,11 @@
 			buf.push('false');
 		}
 		buf.push('</span>');
-
-
-		if(data.percentViewable >= 50){
+		
+		isViewable = (data.viewabilityState == 'viewable');
+		
+		
+		if(isViewable || data.percentViewable >= 50){
 			css = 'inView'
 			if(data.focus === false){
 				css += ' noFocus';
@@ -368,13 +408,32 @@
 
 		if(options.topFrame && !ovvtest.isTopFrame()){
 			twin = window.top;
-			tdoc = twin.document;
-			el = util.getEl(elemOrId, tdoc);
-			regTopWindow = true;
-			id = el.getAttribute('id');
-
-			opts.valuesOutputElem.push(el);
-
+			try{
+				tdoc = twin.document;
+				el = util.getEl(elemOrId, tdoc);
+				regTopWindow = true;
+				id = el.getAttribute('id');
+				
+				opts.valuesOutputElem.push(el);
+			}
+			catch(ex){
+				// Cross domain iframe
+				
+				var parentUrl = (window.location != window.parent.location)
+					? document.referrer
+					: document.location;
+				
+				// instruct parent to build the info window and exit
+				var pmsg = {
+					func : "buildInfoWindow",
+					params : ""
+				}
+				
+				ovvtest.isCrossDomain = true; // flag as cross domain case
+				notifyParentPage(pmsg);
+				return;
+			}
+			
 		}
 		else{
 			el = util.getEl(elemOrId);
@@ -418,8 +477,13 @@
 			clearTimeout(regTimer);
 			regTimer = 0;
 		}
-
-		if(!window['$ovvvpaid']){
+		
+		var ovvReady = (window['$ovvvpaid'] != null);
+		if(ovvReady && $ovv.DEBUG_LOAD){
+			
+		}
+		
+		if(!ovvReady){
 			if(++attachRetries < 60000){
 				regTimer = setTimeout(function(){
 					registerOvvListeners();
@@ -517,6 +581,12 @@
 		// ovvtest.log(eventObj, data);
 		if(opts.displayOvvValues){
 			displayViewableData(dataObj);
+			
+			msg = {
+				func : 'displayViewableData',
+				data : dataObj
+			}
+			notifyParentPage(msg);
 		}
 	}
 
@@ -527,9 +597,9 @@
 		var name = eventObj && eventObj.eventName || '';
 
 		var dataObj = data.ovvData;
-		var el = doc.getElementById('ovvStartBox');
-		el.style.display='block';
-
+		// var el = doc.getElementById('ovvStartBox');
+		// el.style.display='block';
+		
 		updateViewEngine(eventObj, dataObj);
 
 		switch(name){
@@ -596,7 +666,11 @@
 		},
 
 		buildInfoWindow: buildInfoWindow,
-
+		
+		displayViewableData: displayViewableData,
+		
+		displayQuartileViewability: displayQuartileViewability,
+		
 		isTopFrame: function(){
 			if(window === window.top){
 				return true;

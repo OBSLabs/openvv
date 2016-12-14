@@ -53,6 +53,8 @@ function OVV() {
 
     this.servingScenarioEnum = { OnPage: 1, SameDomainIframe: 2, CrossDomainIframe: 3 };
 
+    this.intersectionObserverSupported = !!window.IntersectionObserver;
+
      function getServingScenarioType(servingScenarioEnum) {
         try {
 			if (window.top == window) {
@@ -249,6 +251,47 @@ function OVV() {
         return previousEvents[uid];
     }
 
+    /**
+     * Get the viewport size by taking the smallest dimensions
+     */
+    this.getViewPortSize = function (contextWindow) {
+        var viewPortSize = {
+            width: Infinity,
+            height: Infinity,
+            area:Infinity
+        };
+
+        //document.body  - Handling case where viewport is represented by documentBody
+        //.width
+        if (!isNaN(contextWindow.document.body.clientWidth) && contextWindow.document.body.clientWidth > 0) {
+            viewPortSize.width = contextWindow.document.body.clientWidth;
+        }
+        //.height
+        if (!isNaN(contextWindow.document.body.clientHeight) && contextWindow.document.body.clientHeight > 0) {
+            viewPortSize.height = contextWindow.document.body.clientHeight;
+        }
+        //document.documentElement - Handling case where viewport is represented by documentElement
+        //.width
+        if (!!contextWindow.document.documentElement && !!contextWindow.document.documentElement.clientWidth && !isNaN(contextWindow.document.documentElement.clientWidth)) {
+            viewPortSize.width = contextWindow.document.documentElement.clientWidth;
+        }
+        //.height
+        if (!!contextWindow.document.documentElement && !!contextWindow.document.documentElement.clientHeight && !isNaN(contextWindow.document.documentElement.clientHeight)) {
+            viewPortSize.height = contextWindow.document.documentElement.clientHeight;
+        }
+        //window.innerWidth/Height - Handling case where viewport is represented by window.innerH/W
+        //.innerWidth
+        if (!!contextWindow.innerWidth && !isNaN(contextWindow.innerWidth)) {
+            viewPortSize.width = Math.min(viewPortSize.width, contextWindow.innerWidth);
+        }
+        //.innerHeight
+        if (!!contextWindow.innerHeight && !isNaN(contextWindow.innerHeight)) {
+            viewPortSize.height = Math.min(viewPortSize.height, contextWindow.innerHeight);
+        }
+        viewPortSize.area = viewPortSize.height * viewPortSize.width;
+        return viewPortSize;
+    };
+
     var getCurrentTime = function () {
         'use strict';
         if (Date.now) {
@@ -378,11 +421,13 @@ function OVVCheck() {
 
     /**
     * The technique used to populate OVVCheck.viewabilityState. Will be either
-    * OVV.GEOMETRY when OVV is run in the root page, or OVV.BEACON when OVV is
-    * run in an iframe. When in debug mode, will always remain blank.
+    * OVV.GEOMETRY when OVV is run in the root page, OVV.BEACON when OVV is
+    * run in an iframe, or OVV.INTERSECTIONOBSERVER when using the IntersectionObserver API. 
+    * When in debug mode, will always remain blank.
     * @type {String}
     * @see {@link OVV#GEOMETRY}
     * @see {@link OVV#BEACON}
+    * @see {@link OVV#INTERSECTIONOBSERVER}
     */
     this.technique = '';
 
@@ -505,6 +550,12 @@ OVVCheck.BEACON = 'beacon';
 * uses the geometry technique to determine {@link OVVCheck#viewabilityState}
 */
 OVVCheck.GEOMETRY = 'geometry';
+
+/**
+* The value that {@link OVVCheck#technique} will be set to if OVV
+* uses IntersectionObserver to determine {@link OVVCheck#viewabilityState}
+*/
+OVVCheck.INTERSECTIONOBSERVER = 'intersectionobserver';
 
 /**
  * The value that {@link OVVCheck#technique} will be set to if OVV
@@ -811,6 +862,8 @@ function OVVAsset(uid, dependencies) {
 
     var geometryViewabilityCalculator = dependencies.geometryViewabilityCalculator;
 
+    var intersectionObserverMonitor;
+
     /**
     * hold a reference to a function that get the relevant beacon
     * @type {function}
@@ -872,6 +925,15 @@ function OVVAsset(uid, dependencies) {
             check.error = 'Player not found!';
             return check;
         }
+
+        if($ovvvpaid.intersectionObserverSupported){
+            check.technique = OVVCheck.INTERSECTIONOBSERVER;
+            checkIntersectionObserver(check,player);
+            check.viewabilityState = check.percentViewable >= 50 ? OVVCheck.VIEWABLE : OVVCheck.UNVIEWABLE;
+        
+            return check;
+        }
+
         // Check if a CSS attribute value ( 'visibility:hidden' or 'display:none' )
         // on player or an inheritable containing element is rendering the player invisible.
         if (checkCssInvisibility(check, player) === true){
@@ -1254,6 +1316,22 @@ function OVVAsset(uid, dependencies) {
         return false;
     };
 
+    var checkIntersectionObserver = function(check,player){
+        check.percentViewable = intersectionObserverMonitor.percentViewable;
+
+        var objRect = player.getClientRects ? player.getClientRects()[0] : { top: -1, bottom: -1, left: -1, right: -1};
+        check.objTop = objRect.top;
+        check.objBottom = objRect.bottom;
+        check.objLeft = objRect.left;
+        check.objRight = objRect.right;
+
+        if(check.geometrySupported){
+            var viewPortSize = $ovv.getViewPortSize(window);
+            check.clientWidth = viewPortSize.width;
+            check.clientHeight = viewPortSize.height;
+        }
+    };
+
     /**
     * @returns {Boolean} Whether all beacons have checked in
     */
@@ -1409,7 +1487,7 @@ function OVVAsset(uid, dependencies) {
         var middleHeight = playerHeight / SQRT_2;
 
         for (var index = 0; index <= TOTAL_BEACONS; index++) {
-
+            var offset = Math.round(Math.random()*5);
             var left = playerLocation.left + document.body.scrollLeft;
             var top = playerLocation.top + document.body.scrollTop;
 
@@ -1419,53 +1497,56 @@ function OVVAsset(uid, dependencies) {
                     top = -100000;
                     break;
                 case CENTER:
-                    left += (playerWidth - BEACON_SIZE) / 2;
-                    top += (playerHeight - BEACON_SIZE) / 2;
+                    left += (playerWidth - BEACON_SIZE) / 2 + offset;
+                    top += (playerHeight - BEACON_SIZE) / 2 + offset;
                     break;
                 case OUTER_TOP_LEFT:
-                    // nothing to do, already at default position
+                    left+= offset;
+                    top+= offset;
                     break;
                 case OUTER_TOP_RIGHT:
-                    left += playerWidth - BEACON_SIZE;
+                    top+= offset;
+                    left += playerWidth - BEACON_SIZE - offset;
                     break;
                 case OUTER_BOTTOM_LEFT:
-                    top += playerHeight - BEACON_SIZE;
+                    left+= offset;
+                    top += playerHeight - BEACON_SIZE - offset;
                     break;
                 case OUTER_BOTTOM_RIGHT:
-                    left += playerWidth - BEACON_SIZE;
-                    top += playerHeight - BEACON_SIZE;
+                    left += playerWidth - BEACON_SIZE - offset;
+                    top += playerHeight - BEACON_SIZE - offset;
                     break;
                 case MIDDLE_TOP_LEFT:
-                    left += (playerWidth - middleWidth) / 2;
-                    top += (playerHeight - middleHeight) / 2;
+                    left += (playerWidth - middleWidth) / 2 + offset;
+                    top += (playerHeight - middleHeight) / 2 + offset;
                     break;
                 case MIDDLE_TOP_RIGHT:
-                    left += ((playerWidth - middleWidth) / 2) + middleWidth;
-                    top += (playerHeight - middleHeight) / 2;
+                    left += ((playerWidth - middleWidth) / 2) + middleWidth - offset;
+                    top += (playerHeight - middleHeight) / 2 + offset;
                     break;
                 case MIDDLE_BOTTOM_LEFT:
-                    left += (playerWidth - middleWidth) / 2;
-                    top += ((playerHeight - middleHeight) / 2) + middleHeight;
+                    left += (playerWidth - middleWidth) / 2 + offset;
+                    top += ((playerHeight - middleHeight) / 2) + middleHeight - offset;
                     break;
                 case MIDDLE_BOTTOM_RIGHT:
-                    left += ((playerWidth - middleWidth) / 2) + middleWidth;
-                    top += ((playerHeight - middleHeight) / 2) + middleHeight;
+                    left += ((playerWidth - middleWidth) / 2) + middleWidth - offset;
+                    top += ((playerHeight - middleHeight) / 2) + middleHeight - offset;
                     break;
                 case INNER_TOP_LEFT:
-                    left += (playerWidth - innerWidth) / 2;
-                    top += (playerHeight - innerHeight) / 2;
+                    left += (playerWidth - innerWidth) / 2 + offset;
+                    top += (playerHeight - innerHeight) / 2 + offset;
                     break;
                 case INNER_TOP_RIGHT:
-                    left += ((playerWidth - innerWidth) / 2) + innerWidth;
-                    top += (playerHeight - innerHeight) / 2;
+                    left += ((playerWidth - innerWidth) / 2) + innerWidth - offset;
+                    top += (playerHeight - innerHeight) / 2 + offset;
                     break;
                 case INNER_BOTTOM_LEFT:
-                    left += (playerWidth - innerWidth) / 2;
-                    top += ((playerHeight - innerHeight) / 2) + innerHeight;
+                    left += (playerWidth - innerWidth) / 2 + offset;
+                    top += ((playerHeight - innerHeight) / 2) + innerHeight - offset;
                     break;
                 case INNER_BOTTOM_RIGHT:
-                    left += ((playerWidth - innerWidth) / 2) + innerWidth;
-                    top += ((playerHeight - innerHeight) / 2) + innerHeight;
+                    left += ((playerWidth - innerWidth) / 2) + innerWidth - offset;
+                    top += ((playerHeight - innerHeight) / 2) + innerHeight - offset;
                     break;
             }
             // center the middle and inner beacons on their intended point
@@ -1608,8 +1689,18 @@ function OVVAsset(uid, dependencies) {
 
     player = findPlayer();
 
+     if($ovvvpaid.intersectionObserverSupported){
+        intersectionObserverMonitor = new OVVIntersectionObserverViewabilityMonitor();
+            if(player){
+                intersectionObserverMonitor.beginMonitoring(player);
+                if(player['onJsReady' + uid]){
+                    setTimeout( function(){ player['onJsReady' + uid](); }, 5 );
+                }
+            }
+    }
+
     // only use the beacons if geometry is not supported, or we we are in DEBUG mode.
-    if ($ovvvpaid.geometrySupported == false || $ovvvpaid.DEBUG) {
+    else if ($ovvvpaid.geometrySupported == false || $ovvvpaid.DEBUG) {
         if ($ovvvpaid.browser.ID === $ovvvpaid.browserIDEnum.Firefox){
             //Use frame technique to measure viewability in cross domain FF scenario
             getBeaconFunc = getFrameBeacon;
@@ -1645,7 +1736,7 @@ function OVVGeometryViewabilityCalculator() {
             // no position testing required if viewport is less than half the area of the player
             viewablePercentage = Math.floor(100 * minViewPortSize.area / playerArea);
         }else{
-            var viewPortSize = getViewPortSize(window.top),
+            var viewPortSize = $ovvvpaid.getViewPortSize(window.top),
                 visibleAssetSize = getAssetVisibleDimension(element, contextWindow);
             //var viewablePercentage = getAssetViewablePercentage(assetSize, viewPortSize);
             //Height within viewport:
@@ -1687,13 +1778,13 @@ function OVVGeometryViewabilityCalculator() {
 
     // Check nested iframes
     var getMinViewPortSize = function (){
-        var minViewPortSize = getViewPortSize(window),
+        var minViewPortSize = $ovvvpaid.getViewPortSize(window),
             minViewPortArea = minViewPortSize.area,
             currentWindow = window;
 
         while (currentWindow != window.top){
             currentWindow = currentWindow.parent;
-            viewPortSize = getViewPortSize(currentWindow);
+            viewPortSize = $ovvvpaid.getViewPortSize(currentWindow);
             if (viewPortSize.area < minViewPortArea){
                 minViewPortArea = viewPortSize.area;
                 minViewPortSize = viewPortSize;
@@ -1701,48 +1792,6 @@ function OVVGeometryViewabilityCalculator() {
         }
         return minViewPortSize;
     }
-
-
-    /**
-     * Get the viewport size by taking the smallest dimensions
-     */
-    var getViewPortSize = function (contextWindow) {
-        var viewPortSize = {
-            width: Infinity,
-            height: Infinity,
-            area:Infinity
-        };
-
-        //document.body  - Handling case where viewport is represented by documentBody
-        //.width
-        if (!isNaN(contextWindow.document.body.clientWidth) && contextWindow.document.body.clientWidth > 0) {
-            viewPortSize.width = contextWindow.document.body.clientWidth;
-        }
-        //.height
-        if (!isNaN(contextWindow.document.body.clientHeight) && contextWindow.document.body.clientHeight > 0) {
-            viewPortSize.height = contextWindow.document.body.clientHeight;
-        }
-        //document.documentElement - Handling case where viewport is represented by documentElement
-        //.width
-        if (!!contextWindow.document.documentElement && !!contextWindow.document.documentElement.clientWidth && !isNaN(contextWindow.document.documentElement.clientWidth)) {
-            viewPortSize.width = contextWindow.document.documentElement.clientWidth;
-        }
-        //.height
-        if (!!contextWindow.document.documentElement && !!contextWindow.document.documentElement.clientHeight && !isNaN(contextWindow.document.documentElement.clientHeight)) {
-            viewPortSize.height = contextWindow.document.documentElement.clientHeight;
-        }
-        //window.innerWidth/Height - Handling case where viewport is represented by window.innerH/W
-        //.innerWidth
-        if (!!contextWindow.innerWidth && !isNaN(contextWindow.innerWidth)) {
-            viewPortSize.width = Math.min(viewPortSize.width, contextWindow.innerWidth);
-        }
-        //.innerHeight
-        if (!!contextWindow.innerHeight && !isNaN(contextWindow.innerHeight)) {
-            viewPortSize.height = Math.min(viewPortSize.height, contextWindow.innerHeight);
-        }
-        viewPortSize.area = viewPortSize.height * viewPortSize.width;
-        return viewPortSize;
-    };
 
     /**
      * Recursive function that return the asset (element) visible dimension
@@ -1874,6 +1923,34 @@ function OVVGeometryViewabilityCalculator() {
         // Divied the visible asset area by the full asset area to the the visible percentage
         return Math.round((((assetVisibleWidth * assetVisibleHeight)) / (asset.width * asset.height)) * 100);
     };
+}
+
+function OVVIntersectionObserverViewabilityMonitor(){
+    var _percentVieawable = 0,
+        thresholds = [0.0,0.10,0.20,0.30,0.40,0.5,0.60,0.70,0.80,0.90,1.0],
+        observer;
+
+    if($ovvvpaid.intersectionObserverSupported){
+        observer = new IntersectionObserver(thresholdCallback,{threshold:thresholds});
+    }
+
+    Object.defineProperty(this,'percentViewable',{
+        get:function(){
+            return _percentVieawable;
+        }
+    });
+
+    this.beginMonitoring = function(playerElement){
+        if(!!playerElement){
+            observer.observe(playerElement);
+        }
+    };
+
+    function thresholdCallback(entries){
+        if(entries && entries.length && entries[0].intersectionRatio !== 'undefined'){
+            _percentVieawable = entries[0].intersectionRatio * 100;
+        }
+    }
 }
 
 // A memoize function to store function results
